@@ -77,10 +77,46 @@
     cursor: pointer;
   }
   #reset:hover { opacity: 0.9; }
+  #controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #controls label {
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  #controls select {
+    font-size: 0.95rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--cell-bg);
+    color: var(--text);
+  }
 </style>
 </head>
 <body>
   <h1>Tic-Tac-Toe</h1>
+  <div id="controls">
+    <label>Mode:
+      <select id="mode">
+        <option value="pvp">2 Players</option>
+        <option value="cpu">Vs Computer</option>
+      </select>
+    </label>
+    <label id="difficultyLabel" hidden>Difficulty:
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </label>
+  </div>
   <div id="status">Player X's turn</div>
   <div id="board"></div>
   <button id="reset">Restart</button>
@@ -89,6 +125,9 @@
   const boardEl = document.getElementById('board');
   const statusEl = document.getElementById('status');
   const resetBtn = document.getElementById('reset');
+  const modeEl = document.getElementById('mode');
+  const difficultyEl = document.getElementById('difficulty');
+  const difficultyLabel = document.getElementById('difficultyLabel');
 
   const WIN_LINES = [
     [0,1,2], [3,4,5], [6,7,8],
@@ -96,9 +135,20 @@
     [0,4,8], [2,4,6],
   ];
 
+  const HUMAN = 'X';
+  const CPU = 'O';
+
   let board = Array(9).fill(null);
   let currentPlayer = 'X';
   let gameOver = false;
+
+  function isCpuMode() {
+    return modeEl.value === 'cpu';
+  }
+
+  function isCpuTurn() {
+    return isCpuMode() && currentPlayer === CPU && !gameOver;
+  }
 
   function render() {
     boardEl.innerHTML = '';
@@ -106,7 +156,7 @@
       const btn = document.createElement('button');
       btn.className = 'cell' + (value ? ' ' + value.toLowerCase() : '');
       btn.textContent = value || '';
-      btn.disabled = Boolean(value) || gameOver;
+      btn.disabled = Boolean(value) || gameOver || isCpuTurn();
       btn.setAttribute('aria-label', `Cell ${i + 1}`);
       btn.addEventListener('click', () => handleMove(i));
       boardEl.appendChild(btn);
@@ -114,39 +164,133 @@
   }
 
   function handleMove(index) {
-    if (board[index] || gameOver) return;
+    if (board[index] || gameOver || isCpuTurn()) return;
     board[index] = currentPlayer;
 
+    if (checkEnd()) return;
+
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    statusEl.textContent = `Player ${currentPlayer}'s turn`;
+    render();
+
+    if (isCpuTurn()) {
+      setTimeout(cpuMove, 350);
+    }
+  }
+
+  function checkEnd() {
     const winLine = getWinningLine();
     if (winLine) {
       gameOver = true;
-      statusEl.textContent = `Player ${currentPlayer} wins!`;
+      const label = isCpuMode() && currentPlayer === CPU ? 'Computer' : `Player ${currentPlayer}`;
+      statusEl.textContent = `${label} wins!`;
       render();
       highlightWin(winLine);
-      return;
+      return true;
     }
 
     if (board.every(cell => cell)) {
       gameOver = true;
       statusEl.textContent = "It's a tie!";
       render();
-      return;
+      return true;
     }
 
-    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-    statusEl.textContent = `Player ${currentPlayer}'s turn`;
-    render();
+    return false;
   }
 
-  function getWinningLine() {
-    return WIN_LINES.find(([a, b, c]) =>
-      board[a] && board[a] === board[b] && board[a] === board[c]
+  function getWinningLine(b = board) {
+    return WIN_LINES.find(([a, b1, c]) =>
+      b[a] && b[a] === b[b1] && b[a] === b[c]
     );
   }
 
   function highlightWin(line) {
     const cells = boardEl.querySelectorAll('.cell');
     line.forEach(i => cells[i].classList.add('win'));
+  }
+
+  function cpuMove() {
+    if (gameOver) return;
+    const index = pickCpuMove(difficultyEl.value);
+    board[index] = CPU;
+
+    if (checkEnd()) return;
+
+    currentPlayer = HUMAN;
+    statusEl.textContent = "Player X's turn";
+    render();
+  }
+
+  function availableMoves(b) {
+    return b.reduce((acc, cell, i) => { if (!cell) acc.push(i); return acc; }, []);
+  }
+
+  function pickCpuMove(difficulty) {
+    const moves = availableMoves(board);
+    if (difficulty === 'easy') {
+      return moves[Math.floor(Math.random() * moves.length)];
+    }
+    if (difficulty === 'medium') {
+      // Take a winning move or block one 70% of the time, otherwise play randomly.
+      if (Math.random() < 0.7) {
+        const winning = findImmediateMove(board, CPU) ?? findImmediateMove(board, HUMAN);
+        if (winning !== null) return winning;
+      }
+      return moves[Math.floor(Math.random() * moves.length)];
+    }
+    return findBestMove(board);
+  }
+
+  function findImmediateMove(b, player) {
+    for (const move of availableMoves(b)) {
+      const copy = b.slice();
+      copy[move] = player;
+      if (getWinningLine(copy)) return move;
+    }
+    return null;
+  }
+
+  function findBestMove(b) {
+    let bestScore = -Infinity;
+    let bestMove = null;
+    for (const move of availableMoves(b)) {
+      const copy = b.slice();
+      copy[move] = CPU;
+      const score = minimax(copy, 0, false);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
+      }
+    }
+    return bestMove;
+  }
+
+  function minimax(b, depth, isMaximizing) {
+    const winLine = getWinningLine(b);
+    if (winLine) {
+      const winner = b[winLine[0]];
+      return winner === CPU ? 10 - depth : depth - 10;
+    }
+    if (b.every(cell => cell)) return 0;
+
+    if (isMaximizing) {
+      let best = -Infinity;
+      for (const move of availableMoves(b)) {
+        const copy = b.slice();
+        copy[move] = CPU;
+        best = Math.max(best, minimax(copy, depth + 1, false));
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for (const move of availableMoves(b)) {
+        const copy = b.slice();
+        copy[move] = HUMAN;
+        best = Math.min(best, minimax(copy, depth + 1, true));
+      }
+      return best;
+    }
   }
 
   function reset() {
@@ -158,6 +302,11 @@
   }
 
   resetBtn.addEventListener('click', reset);
+  modeEl.addEventListener('change', () => {
+    difficultyLabel.hidden = !isCpuMode();
+    reset();
+  });
+  difficultyEl.addEventListener('change', reset);
 
   render();
 </script>
