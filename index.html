@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic-Tac-Toe</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #1e1e2e;
+    --cell-bg: #2a2a3c;
+    --cell-hover: #34344a;
+    --line: #45455f;
+    --text: #eaeaf5;
+    --accent-x: #6ea8ff;
+    --accent-o: #ff8e8e;
+    --win: #7ee787;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  h1 { margin: 0; font-size: 1.8rem; letter-spacing: 0.05em; }
+  #status {
+    font-size: 1.2rem;
+    min-height: 1.6rem;
+    font-weight: 600;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 6px;
+    background: var(--line);
+    padding: 6px;
+    border-radius: 12px;
+  }
+  .cell {
+    background: var(--cell-bg);
+    border: none;
+    border-radius: 8px;
+    font-size: 2.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.15s ease;
+  }
+  .cell:hover:not(:disabled) {
+    background: var(--cell-hover);
+  }
+  .cell:disabled {
+    cursor: default;
+  }
+  .cell.x { color: var(--accent-x); }
+  .cell.o { color: var(--accent-o); }
+  .cell.win { color: var(--win); }
+  #reset {
+    padding: 0.6rem 1.4rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent-x);
+    color: #10101a;
+    cursor: pointer;
+  }
+  #reset:hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+  <h1>Tic-Tac-Toe</h1>
+  <div id="status">Player X's turn</div>
+  <div id="board"></div>
+  <button id="reset">Restart</button>
+
+<script>
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const resetBtn = document.getElementById('reset');
+
+  const WIN_LINES = [
+    [0,1,2], [3,4,5], [6,7,8],
+    [0,3,6], [1,4,7], [2,5,8],
+    [0,4,8], [2,4,6],
+  ];
+
+  let board = Array(9).fill(null);
+  let currentPlayer = 'X';
+  let gameOver = false;
+
+  function render() {
+    boardEl.innerHTML = '';
+    board.forEach((value, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'cell' + (value ? ' ' + value.toLowerCase() : '');
+      btn.textContent = value || '';
+      btn.disabled = Boolean(value) || gameOver;
+      btn.setAttribute('aria-label', `Cell ${i + 1}`);
+      btn.addEventListener('click', () => handleMove(i));
+      boardEl.appendChild(btn);
+    });
+  }
+
+  function handleMove(index) {
+    if (board[index] || gameOver) return;
+    board[index] = currentPlayer;
+
+    const winLine = getWinningLine();
+    if (winLine) {
+      gameOver = true;
+      statusEl.textContent = `Player ${currentPlayer} wins!`;
+      render();
+      highlightWin(winLine);
+      return;
+    }
+
+    if (board.every(cell => cell)) {
+      gameOver = true;
+      statusEl.textContent = "It's a tie!";
+      render();
+      return;
+    }
+
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    statusEl.textContent = `Player ${currentPlayer}'s turn`;
+    render();
+  }
+
+  function getWinningLine() {
+    return WIN_LINES.find(([a, b, c]) =>
+      board[a] && board[a] === board[b] && board[a] === board[c]
+    );
+  }
+
+  function highlightWin(line) {
+    const cells = boardEl.querySelectorAll('.cell');
+    line.forEach(i => cells[i].classList.add('win'));
+  }
+
+  function reset() {
+    board = Array(9).fill(null);
+    currentPlayer = 'X';
+    gameOver = false;
+    statusEl.textContent = "Player X's turn";
+    render();
+  }
+
+  resetBtn.addEventListener('click', reset);
+
+  render();
+</script>
+</body>
+</html>
