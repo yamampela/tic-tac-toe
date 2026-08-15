@@ -6,15 +6,17 @@
 <title>Tic-Tac-Toe</title>
 <style>
   :root {
-    color-scheme: light dark;
-    --bg: #1e1e2e;
-    --cell-bg: #2a2a3c;
-    --cell-hover: #34344a;
-    --line: #45455f;
-    --text: #eaeaf5;
-    --accent-x: #6ea8ff;
-    --accent-o: #ff8e8e;
-    --win: #7ee787;
+    color-scheme: dark;
+    --bg: #0f2e1e;
+    --cell-bg: #234a34;
+    --cell-hover: #2d5c40;
+    --line: #163625;
+    --text: #f2f7ec;
+    --accent-x: #ffb703;
+    --accent-o: #ff5d73;
+    --win: #ffe066;
+    --panel-bg: rgba(11, 43, 28, 0.62);
+    --panel-border: rgba(255, 224, 102, 0.25);
   }
   * { box-sizing: border-box; }
   body {
@@ -26,8 +28,42 @@
     justify-content: center;
     gap: 1.25rem;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg);
     color: var(--text);
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255, 224, 102, 0.28), transparent 32%),
+      radial-gradient(circle at 85% 20%, rgba(45, 212, 167, 0.22), transparent 38%),
+      radial-gradient(circle at 75% 85%, rgba(255, 141, 61, 0.16), transparent 40%),
+      linear-gradient(160deg, #041a10 0%, #0b3d26 30%, #146339 55%, #1f8a4d 78%, #3fb673 100%);
+    background-attachment: fixed;
+  }
+  .foliage {
+    position: fixed;
+    font-size: 5rem;
+    opacity: 0.35;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
+  .foliage.tl { top: -1.5rem; left: -1rem; transform: rotate(-15deg); }
+  .foliage.tr { top: -2rem; right: -1.5rem; transform: rotate(20deg) scaleX(-1); font-size: 6rem; }
+  .foliage.bl { bottom: -2rem; left: -1.5rem; transform: rotate(10deg); font-size: 6.5rem; }
+  .foliage.br { bottom: -1.5rem; right: -1rem; transform: rotate(-25deg) scaleX(-1); }
+  .foliage.mid { top: 40%; left: 4%; font-size: 3rem; opacity: 0.22; transform: rotate(8deg); }
+  #panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    padding: 2rem 2.25rem;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
   }
   h1 { margin: 0; font-size: 1.8rem; letter-spacing: 0.05em; }
   #status {
@@ -90,6 +126,9 @@
     align-items: center;
     gap: 0.4rem;
   }
+  #controls label[hidden] {
+    display: none;
+  }
   #controls select {
     font-size: 0.95rem;
     padding: 0.3rem 0.5rem;
@@ -101,25 +140,33 @@
 </style>
 </head>
 <body>
-  <h1>Tic-Tac-Toe</h1>
-  <div id="controls">
-    <label>Mode:
-      <select id="mode">
-        <option value="pvp">2 Players</option>
-        <option value="cpu">Vs Computer</option>
-      </select>
-    </label>
-    <label id="difficultyLabel" hidden>Difficulty:
-      <select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="medium" selected>Medium</option>
-        <option value="hard">Hard</option>
-      </select>
-    </label>
+  <span class="foliage tl" aria-hidden="true">🌿</span>
+  <span class="foliage tr" aria-hidden="true">🌴</span>
+  <span class="foliage bl" aria-hidden="true">🍃</span>
+  <span class="foliage br" aria-hidden="true">🌴</span>
+  <span class="foliage mid" aria-hidden="true">🦜</span>
+
+  <div id="panel">
+    <h1>Tic-Tac-Toe</h1>
+    <div id="controls">
+      <label>Mode:
+        <select id="mode">
+          <option value="pvp">2 Players</option>
+          <option value="cpu">Vs Computer</option>
+        </select>
+      </label>
+      <label id="difficultyLabel" hidden>Difficulty:
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </label>
+    </div>
+    <div id="status">Player X's turn</div>
+    <div id="board"></div>
+    <button id="reset">Restart</button>
   </div>
-  <div id="status">Player X's turn</div>
-  <div id="board"></div>
-  <button id="reset">Restart</button>
 
 <script>
   const boardEl = document.getElementById('board');
